@@ -78,19 +78,40 @@ class HTTPClient(object):
     def GET(self, url, args=None):
         self.get_host_port(url)
         self.connect(self.host, self.port)
-        self.sendall(f"GET {self.path} HTTP/1.1\r\nHost: {self.host}\r\n\r\n")
-        data = self.socket.recv(4096).decode('utf-8')
+        self.sendall(f"GET {self.path} HTTP/1.1\r\n" + 
+                        f"Host: {self.host}\r\n\r\n")
+        data = self.recvall(self.socket)
+        self.close()
 
         headers = self.get_headers(data)
         body = self.get_body(data)
         code = self.get_code(headers)
         
-        #close socket
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
-        code = 500
-        body = ""
+        content_length = 0
+        parameters = ""
+        if args != None:
+            for key, value in args.items():
+                parameters += str(key) + "=" + str(value) + "&"
+        
+            parameters = parameters[:-1]
+            content_length = len(parameters.encode('utf-8'))
+
+        self.get_host_port(url)
+        self.connect(self.host, self.port)
+        self.sendall(f"POST {self.path} HTTP/1.1\r\n" + 
+                f"Host: {self.host}\r\n" + 
+                f"Content-Length: {content_length}\r\n" +
+                f"Content-Type: application/x-www-form-urlencoded\r\n\r\n" +
+                parameters)
+        data = self.recvall(self.socket)
+        self.close()
+
+        headers = self.get_headers(data)
+        body = self.get_body(data)
+        code = self.get_code(headers)
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
