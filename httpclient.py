@@ -69,6 +69,7 @@ class HTTPClient(object):
         done = False
         while not done:
             part = sock.recv(1024)
+            print(part.decode('utf-8'))
             if (part):
                 buffer.extend(part)
             else:
@@ -79,7 +80,8 @@ class HTTPClient(object):
         self.get_host_port(url)
         self.connect(self.host, self.port)
         self.sendall(f"GET {self.path} HTTP/1.1\r\n" + 
-                        f"Host: {self.host}\r\n\r\n")
+                        f"Host: {self.host}\r\n" +
+                        "Connection: close\r\n\r\n")
         data = self.recvall(self.socket)
         self.close()
 
@@ -103,6 +105,7 @@ class HTTPClient(object):
         self.connect(self.host, self.port)
         self.sendall(f"POST {self.path} HTTP/1.1\r\n" + 
                 f"Host: {self.host}\r\n" + 
+                "Connection: close\r\n" +
                 f"Content-Length: {content_length}\r\n" +
                 f"Content-Type: application/x-www-form-urlencoded\r\n\r\n" +
                 parameters)
