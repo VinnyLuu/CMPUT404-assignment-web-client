@@ -57,6 +57,11 @@ class HTTPClient(object):
         body = split_data[1]
         return body
     
+    def make_header(self, headers):
+        header = "\r\n".join(headers)
+        header = header + "\r\n\r\n"
+        return header
+
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
         
@@ -69,7 +74,6 @@ class HTTPClient(object):
         done = False
         while not done:
             part = sock.recv(1024)
-            print(part.decode('utf-8'))
             if (part):
                 buffer.extend(part)
             else:
@@ -79,9 +83,10 @@ class HTTPClient(object):
     def GET(self, url, args=None):
         self.get_host_port(url)
         self.connect(self.host, self.port)
-        self.sendall(f"GET {self.path} HTTP/1.1\r\n" + 
-                        f"Host: {self.host}\r\n" +
-                        "Connection: close\r\n\r\n")
+        headers = [f"GET {self.path} HTTP/1.1",
+                    f"Host: {self.host}",
+                    "Connection: close"]
+        self.sendall(self.make_header(headers))
         data = self.recvall(self.socket)
         self.close()
 
@@ -103,12 +108,12 @@ class HTTPClient(object):
 
         self.get_host_port(url)
         self.connect(self.host, self.port)
-        self.sendall(f"POST {self.path} HTTP/1.1\r\n" + 
-                f"Host: {self.host}\r\n" + 
-                "Connection: close\r\n" +
-                f"Content-Length: {content_length}\r\n" +
-                f"Content-Type: application/x-www-form-urlencoded\r\n\r\n" +
-                parameters)
+        headers = [f"POST {self.path} HTTP/1.1",
+                    f"Host: {self.host}",
+                    "Connection: close",
+                    f"Content-Length: {content_length}",
+                    f"Content-Type: application/x-www-form-urlencoded"]
+        self.sendall(self.make_header(headers) + parameters)
         data = self.recvall(self.socket)
         self.close()
 
@@ -123,6 +128,11 @@ class HTTPClient(object):
         else:
             return self.GET( url, args )
     
+
+def pretty_print(response):
+    print(response.code)
+    print(response.body)
+
 if __name__ == "__main__":
     client = HTTPClient()
     command = "GET"
@@ -130,6 +140,6 @@ if __name__ == "__main__":
         help()
         sys.exit(1)
     elif (len(sys.argv) == 3):
-        print(client.command( sys.argv[2], sys.argv[1] ))
+        pretty_print(client.command( sys.argv[2], sys.argv[1] ))
     else:
-        print(client.command( sys.argv[1] ))
+        pretty_print(client.command( sys.argv[1] ))
