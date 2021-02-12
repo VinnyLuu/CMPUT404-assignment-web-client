@@ -36,6 +36,8 @@ class HTTPClient(object):
     def get_host_port(self,url):
         parsed_url = urllib.parse.urlparse(url)
         self.host = parsed_url.hostname
+        if self.host is None:
+            exit("Incorrect format. Did you prefix url with http://")
         self.port = parsed_url.port if parsed_url.port is not None else 80
         self.path = parsed_url.path if len(parsed_url.path) > 0 else "/"
 
@@ -78,14 +80,21 @@ class HTTPClient(object):
                 buffer.extend(part)
             else:
                 done = not part
-        return buffer.decode('utf-8')
+        try:
+            return buffer.decode('utf-8')
+        except UnicodeDecodeError:
+            try:
+                return buffer.decode('latin-1')
+            except:
+                sys.exit("Could not decode response")
 
     def GET(self, url, args=None):
         self.get_host_port(url)
         self.connect(self.host, self.port)
         headers = [f"GET {self.path} HTTP/1.1",
                     f"Host: {self.host}",
-                    "Connection: close"]
+                    "Connection: close",
+                    "Accept-Charset: utf-8"]
         self.sendall(self.make_header(headers))
         data = self.recvall(self.socket)
         self.close()
@@ -112,7 +121,8 @@ class HTTPClient(object):
                     f"Host: {self.host}",
                     "Connection: close",
                     f"Content-Length: {content_length}",
-                    f"Content-Type: application/x-www-form-urlencoded"]
+                    f"Content-Type: application/x-www-form-urlencoded",
+                    "Accept-Charset: utf-8"]
         self.sendall(self.make_header(headers) + parameters)
         data = self.recvall(self.socket)
         self.close()
